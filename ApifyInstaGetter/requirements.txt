@@ -1,0 +1,3 @@
+apify-client
+python-dateutil 
+python-dotenv 
