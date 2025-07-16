@@ -35,18 +35,21 @@ def test_scraper():
     # Test hashtags
     test_hashtags = [
         "dance",
-        "cooking",
+        "cooking", 
         "fitness",
         "travel",
         "music"
     ]
     
+    # Test with 7 days (1 week) as requested
+    days_back = 7
+    
     for hashtag in test_hashtags:
-        print(f"📱 Testing hashtag: #{hashtag}")
+        print(f"📱 Testing hashtag: #{hashtag} (last {days_back} days)")
         print("-" * 50)
         
         try:
-            results = get_top_tiktok_videos(hashtag)
+            results = get_top_tiktok_videos(hashtag, days_back=days_back)
             
             if results:
                 print(f"✅ Found {len(results)} videos for #{hashtag}")
@@ -72,12 +75,12 @@ def test_scraper():
     
     # Test with empty hashtag
     print("Testing empty hashtag...")
-    results = get_top_tiktok_videos("")
+    results = get_top_tiktok_videos("", days_back=days_back)
     print(f"Empty hashtag result: {len(results)} videos\n")
     
     # Test with non-existent hashtag
     print("Testing non-existent hashtag...")
-    results = get_top_tiktok_videos("thishshtagdoesnotexist12345")
+    results = get_top_tiktok_videos("thishshtagdoesnotexist12345", days_back=days_back)
     print(f"Non-existent hashtag result: {len(results)} videos\n")
 
 
