@@ -1,0 +1,8 @@
+flask
+google-generativeai
+instaloader
+pyktok
+pandas
+python-dotenv
+requests
+browser_cookie3 
