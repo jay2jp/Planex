@@ -31,6 +31,10 @@ A Flask web application that downloads videos from TikTok and Instagram and anal
 2. **Install dependencies**
    ```bash
    pip install -r requirements.txt
+   
+   # Install playwright binaries (required for pyktok)
+   playwright install
+   playwright install-deps  # May be needed on some systems
    ```
 
 3. **Configure environment variables**
@@ -68,9 +72,38 @@ Multiple test files are included to verify everything works correctly:
 # Test Chrome browser cookies (optional - for better TikTok performance)
 python test_chrome.py
 
+# Quick test with working URL
+python quick_test.py
+
 # Test the main application (while the server is running)
 python test_app.py
 ```
+
+### 📊 Batch Processing
+
+For analyzing multiple videos at once, use the batch processing script:
+
+```bash
+# Analyze multiple URLs and save results to CSV
+python batch_analyze.py
+
+# Create a sample URLs file to customize
+python batch_analyze.py --create-sample
+
+# Load URLs from a file
+python batch_analyze.py --file urls_to_analyze.txt
+
+# See all options
+python batch_analyze.py --help
+```
+
+**Features:**
+- Process multiple TikTok/Instagram URLs
+- Multiple analysis prompts per video
+- Progress tracking and incremental saves
+- Comprehensive CSV output with timestamps, status, errors
+- Configurable delays between requests
+- Load URLs from external files
 
 The test script will:
 - Check server connectivity
@@ -245,6 +278,8 @@ The application automatically manages Instagram access:
    - **Chrome not found**: The app will work without Chrome but may have rate limits
    - **WSL/Linux**: Chrome browser cookies may not be accessible in WSL environments
    - **Alternative**: Try installing Chrome or use without browser cookies (automatic fallback)
+   - **Video restrictions**: Some TikTok videos may be private, restricted, or deleted
+   - **Recommendation**: Use videos from popular/official accounts (like @tiktok) for more reliability
    - Check if the TikTok URL is public and accessible
 
 2. **Instagram download errors**
@@ -261,6 +296,7 @@ The application automatically manages Instagram access:
 
 4. **Import errors**
    - Run `pip install -r requirements.txt` to install all dependencies
+   - Install playwright binaries: `playwright install && playwright install-deps`
    - Ensure you're using Python 3.8+
 
 5. **Browser cookie errors (BrowserCookieError)**

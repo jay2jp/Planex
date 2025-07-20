@@ -33,7 +33,7 @@ def analyze_video(video_path: str, prompt: str, metadata_text: str) -> str:
 
     print(f"\nFile uploaded successfully: {video_file.name}")
     
-    model = genai.GenerativeModel(model_name="gemini-1.5-pro-latest")
+    model = genai.GenerativeModel(model_name="gemini-2.0-flash")
 
     # Construct the final prompt, providing context to the model
     full_prompt = f"""

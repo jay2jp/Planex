@@ -20,7 +20,9 @@
 ├── requirements.txt         # Python dependencies
 ├── test_app.py             # Main application tests
 ├── test_chrome.py          # Chrome browser cookie tests
-├── debug_tiktok.py         # TikTok download debugging
+├── quick_test.py           # Quick working demo
+├── batch_analyze.py        # Batch processing script
+├── alternative_tiktok_test.py # TikTok debugging alternatives
 ├── README.md               # User documentation
 ├── WSL_CHROME_SETUP.md     # Chrome setup guide for WSL
 ├── PROJECT_NOTES.md        # This comprehensive notes file
@@ -69,6 +71,7 @@ pandas
 python-dotenv
 requests
 browser_cookie3
+playwright
 ```
 
 #### 5. `.env` - Environment Configuration (User Creates)
@@ -102,25 +105,44 @@ GOOGLE_API_KEY="your_real_gemini_api_key_here"
   - Alternative browser testing
   - Detailed diagnostics
 
-#### 8. `debug_tiktok.py` - TikTok Download Debugging
-- **Purpose**: Detailed TikTok download troubleshooting
+#### 8. `batch_analyze.py` - Batch Processing Script
+- **Purpose**: Process multiple video URLs and save results to CSV
 - **Features**:
-  - Step-by-step download testing
-  - Multiple URL format attempts
-  - File creation verification
-  - Browser vs no-browser comparison
+  - Multiple URL processing with configurable prompts
+  - Progress tracking and incremental saves
+  - CSV output with comprehensive metadata
+  - Error handling and status tracking
+  - Load URLs from external files
+  - Command-line interface with options
+
+#### 9. `quick_test.py` - Quick Working Demo
+- **Purpose**: Simple test with verified working URL
+- **Features**:
+  - Uses confirmed working TikTok URL
+  - Single analysis demonstration
+  - Server health check
+  - Clear success/failure feedback
+
+#### 10. `alternative_tiktok_test.py` - TikTok Debugging Alternatives
+- **Purpose**: Alternative approaches for TikTok download troubleshooting
+- **Features**:
+  - Multiple pyktok method testing
+  - Version checking and diagnostics
+  - Working example validation
+  - Alternative URL format testing
 
 ### Documentation Files
 
-#### 9. `README.md` - User Documentation
+#### 11. `README.md` - User Documentation
 - **Comprehensive user guide with**:
   - Quick start instructions
   - API documentation with examples
+  - Batch processing documentation
   - Configuration guide
   - Troubleshooting section
   - Testing instructions
 
-#### 10. `WSL_CHROME_SETUP.md` - Chrome Setup Guide
+#### 12. `WSL_CHROME_SETUP.md` - Chrome Setup Guide
 - **WSL-specific Chrome installation guide**:
   - Three different setup approaches
   - Step-by-step installation instructions
@@ -131,9 +153,10 @@ GOOGLE_API_KEY="your_real_gemini_api_key_here"
 
 ### Quick Setup
 1. **Install dependencies**: `pip install -r requirements.txt`
-2. **Create `.env` file** with Gemini API key (Instagram optional)
-3. **Run server**: `python app.py`
-4. **Test**: `python test_app.py`
+2. **Install playwright binaries**: `playwright install && playwright install-deps`
+3. **Create `.env` file** with Gemini API key (Instagram optional)
+4. **Run server**: `python app.py`
+5. **Test**: `python test_app.py`
 
 ### Optional Chrome Setup (Better TikTok Performance)
 1. **Install Chrome in WSL**: See `WSL_CHROME_SETUP.md`
@@ -162,19 +185,26 @@ GOOGLE_API_KEY="your_real_gemini_api_key_here"
 
 ## 🐛 Known Issues & Solutions
 
-### Current Issue: TikTok 'itemInfo' Error
+### Resolved Issue: TikTok 'itemInfo' Error
 **Problem**: Getting 'itemInfo' error when trying to download TikTok videos
-**Likely Causes**:
-1. **Mobile hotspot restrictions**: IP-based blocking or rate limiting
-2. **Geographic restrictions**: Some videos not available in all regions  
-3. **Video privacy**: Video might be private, deleted, or restricted
-4. **TikTok API changes**: Platform frequently updates their systems
+**Root Cause**: Two issues identified and resolved:
+1. **Incorrect pyktok function call** - was passing 4 parameters instead of 3
+2. **Problematic video URL** - the specific video was restricted/problematic
 
-**Solutions to Try**:
-1. **Different network**: Try from a different internet connection
-2. **Different videos**: Test with popular/public videos
-3. **Run diagnostics**: `python debug_tiktok.py`
-4. **Check error logs**: Look at detailed error messages in console
+**Solution**: 
+1. Fixed `pyk.save_tiktok()` call to use correct parameters: `(url, save_video, csv_file)`
+2. Updated test URLs to use verified working URLs from pyktok documentation
+
+**Working URLs Identified**:
+- `https://www.tiktok.com/@tiktok/video/7106594312292453675?is_copy_url=1&is_from_webapp=v1`
+- `https://www.tiktok.com/@tiktok/video/7011536772089924869?is_copy_url=1&is_from_webapp=v1`
+
+**Fixed in Files**:
+- `scraper.py`: Corrected save_tiktok call
+- `test_app.py`: Updated to use working URLs
+- `debug_tiktok.py`: Updated to use working URLs
+- `requirements.txt`: Added playwright and beautifulsoup4 dependencies
+- Documentation updated with all requirements
 
 ### Instagram Authentication (Resolved)
 **Problem**: Instagram login errors with placeholder credentials
@@ -241,14 +271,30 @@ curl -X POST http://localhost:5000/analyze \
 5. ✅ **Added Chrome browser support with fallback**
 6. ✅ **Created comprehensive error handling**
 7. ✅ **Built testing and debugging tools**
-8. ✅ **Wrote detailed documentation**
-9. ✅ **Identified and provided solutions for network issues**
+8. ✅ **Resolved TikTok 'itemInfo' issues**
+9. ✅ **Created batch processing capabilities**
+10. ✅ **Wrote detailed documentation**
+11. ✅ **Identified and provided solutions for network issues**
 
-### Next Steps When Back on Stable Network
-1. **Test TikTok downloads**: Run `python debug_tiktok.py`
-2. **Verify full functionality**: Run `python test_app.py`
-3. **Test different videos**: Try the backup URLs in the test script
-4. **Production considerations**: Consider rate limiting, caching, etc.
+### Batch Processing Output Format
+
+The `batch_analyze.py` script generates a comprehensive CSV file with the following columns:
+- `timestamp`: When the analysis was performed
+- `url`: Original video URL
+- `platform`: TikTok or Instagram
+- `video_id`: Extracted video identifier
+- `prompt`: Analysis prompt used
+- `status`: success, error, timeout, or connection_error
+- `result`: Gemini's analysis result (if successful)
+- `duration_seconds`: Time taken for analysis
+- `error_message`: Error details (if failed)
+
+### Next Steps After Fix
+1. **Install playwright**: Run `playwright install && playwright install-deps`
+2. **Test single video**: Run `python quick_test.py`
+3. **Test batch processing**: Run `python batch_analyze.py`
+4. **Verify full functionality**: Run `python test_app.py`
+5. **Production considerations**: Consider rate limiting, caching, etc.
 
 ## 🔑 Environment Variables Reference
 
@@ -316,11 +362,20 @@ curl -X POST http://localhost:5000/analyze \
 # Start the application
 python app.py
 
+# Quick single test
+python quick_test.py
+
+# Batch process multiple videos
+python batch_analyze.py
+
+# Create sample URLs file
+python batch_analyze.py --create-sample
+
+# Process URLs from file
+python batch_analyze.py --file urls_to_analyze.txt
+
 # Test everything
 python test_app.py
-
-# Debug TikTok specifically
-python debug_tiktok.py
 
 # Test Chrome browser
 python test_chrome.py

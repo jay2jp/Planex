@@ -5,4 +5,6 @@ pyktok
 pandas
 python-dotenv
 requests
-browser_cookie3 
+browser_cookie3
+playwright
+beautifulsoup4 

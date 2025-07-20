@@ -89,7 +89,7 @@ def download_video(url: str) -> dict:
             # Handle TikTok
             try:
                 print(f"🎬 Downloading TikTok video from: {url}")
-                pyk.save_tiktok(url, True, os.path.join(temp_dir, 'video_data.csv'), 'chrome')
+                pyk.save_tiktok(url, True, os.path.join(temp_dir, 'video_data.csv'))
                 
                 # pyktok saves to the current working directory, so we find and move it.
                 video_files = [f for f in os.listdir('.') if f.endswith('.mp4')]

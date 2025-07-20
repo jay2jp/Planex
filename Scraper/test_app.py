@@ -10,13 +10,13 @@ import time
 
 # Configuration
 API_URL = "http://localhost:5000/analyze"
-TEST_VIDEO_URL = "https://www.tiktok.com/@marcusonthelow/video/7526360050126818591"
+# Using working URLs from pyktok documentation
+TEST_VIDEO_URL = "https://www.tiktok.com/@tiktok/video/7106594312292453675?is_copy_url=1&is_from_webapp=v1"
 
-# Backup URLs to try if the main one fails
+# Backup URLs that are confirmed to work
 BACKUP_URLS = [
-    "https://www.tiktok.com/@gordonramsayofficial/video/7403637266936417568",  # Gordon Ramsay cooking video
-    "https://www.tiktok.com/@khaby.lame/video/7137423965982723334",  # Popular creator
-    "https://www.tiktok.com/@lizzo/video/7138564918572084522",  # Music/entertainment
+    "https://www.tiktok.com/@tiktok/video/7011536772089924869?is_copy_url=1&is_from_webapp=v1",  # TikTok official
+    "https://www.tiktok.com/@marcusonthelow/video/7526360050126818591",  # Original URL (problematic)
 ]
 
 def test_video_analysis():
