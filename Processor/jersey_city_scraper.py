@@ -12,17 +12,18 @@ import sys
 import requests
 from dotenv import load_dotenv
 
-# Add the path to the ApifyLinkGetter module to the system path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'ApifyLinkGetter')))
+# Add the root directory to the Python path to access ApifyLinkGetter
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, root_dir)
 
-from tiktok_scraper import get_top_tiktok_videos
+from ApifyLinkGetter import get_top_tiktok_videos
 
 
 def analyze_video_via_api(url, prompt):
     """
     Calls the local Flask app's /analyze endpoint to process a video.
     """
-    api_url = "http://localhost:8000/analyze"
+    api_url = "http://localhost:5000/analyze"
     payload = {"url": url, "prompt": prompt}
     try:
         response = requests.post(api_url, json=payload)

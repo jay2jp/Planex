@@ -45,8 +45,8 @@ def get_top_tiktok_videos(hashtag: str, days_back: int = 14) -> List[str]:
         # Configure scraper input
         scraper_input = {
             "hashtags": [hashtag],
-            "resultsLimit": 50,
-             "resultsPerPage": 50
+            "resultsLimit": 30,
+             "resultsPerPage": 30
         }
         
         # Run the clockworks/tiktok-scraper actor
