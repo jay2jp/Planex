@@ -12,6 +12,8 @@ import sys
 import requests
 import psycopg2
 from dotenv import load_dotenv
+import google.generativeai as genai
+from google.generativeai import types
 
 # Add the root directory to the Python path to access ApifyLinkGetter
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -53,6 +55,22 @@ def get_db_connection():
         return None
 
 
+def get_embedding(text):
+    """Generates an embedding for the given text using the Gemini API."""
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    try:
+        result = genai.embed_content(
+            model="gemini-embedding-001",
+            content=text,
+            task_type="retrieval_document", #3072
+            output_dimensionality=1536
+        )
+        return result['embedding']
+    except Exception as e:
+        print(f"Failed to generate embedding: {e}")
+        return None
+
+
 def analyze_video_via_api(url, prompt):
     """
     Calls the local Flask app's /analyze endpoint to process a video.
@@ -68,7 +86,7 @@ def analyze_video_via_api(url, prompt):
         return None
 
 
-def insert_recommendation(conn, data, scraped_hashtag):
+def insert_recommendation(conn, data, scraped_hashtag, embedding):
     """
     Inserts a recommendation and its related data into the database.
     """
@@ -77,13 +95,13 @@ def insert_recommendation(conn, data, scraped_hashtag):
             # Step 1: Insert recommendation and get its ID
             cur.execute(
                 """
-                INSERT INTO recommendations (name, location, neighborhood, summary, quote, source_url)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO recommendations (name, location, neighborhood, summary, quote, source_url, embedding)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (source_url) DO NOTHING
                 RETURNING id;
                 """,
                 (data.get('name', 'N/A'), data.get('location', 'N/A'), data.get('neighborhood', 'N/A'),
-                 data.get('summary', 'N/A'), data.get('quote', 'N/A'), data['source_url'])
+                 data.get('summary', 'N/A'), data.get('quote', 'N/A'), data['source_url'], embedding)
             )
             rec_id_tuple = cur.fetchone()
 
@@ -223,7 +241,12 @@ return the JSON object only, no other text or comments and do not use the ```jso
                     print(cleaned_result)
                     data = json.loads(cleaned_result)
                     data['source_url'] = url
-                    insert_recommendation(conn, data, hashtag)
+
+                    # Generate embedding
+                    text_to_embed = f"{data.get('summary', '')} {data.get('neighborhood', '')} {data.get('quote', '')}"
+                    embedding = get_embedding(text_to_embed)
+
+                    insert_recommendation(conn, data, hashtag, embedding)
                 except json.JSONDecodeError:
                     print(f"Could not parse JSON from Gemini for video {url}")
             else:
