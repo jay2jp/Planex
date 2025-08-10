@@ -175,8 +175,35 @@ def main():
         sys.exit("Could not connect to the database. Exiting.")
 
     # Hashtags to scrape
-    hashtags = ["jerseycity"]
+    hashtags = [
+    "DowntownJerseyCityEats",
+    "DowntownJerseyCityFood",
+    "DowntownJerseyCityBrunch",
+    "DowntownJerseyCityBars",
+    "DowntownJerseyCityCocktails",
 
+ 
+]
+    secondList= [ 
+            "DowntownJerseyCityRestaurants",
+    "DowntownJerseyCityCoffee",
+    "DowntownJerseyCityDateSpots"
+          "JournalSquareEats",
+    "JournalSquareFood",
+    "JournalSquareBrunch",
+    "JournalSquareBars",
+    "JournalSquareCocktails",
+    "JournalSquareRestaurants",
+    "JournalSquareCoffee",
+    "JournalSquareDateSpots",
+    "TheHeightsEats",
+    "TheHeightsFood",
+    "TheHeightsBrunch",
+    "TheHeightsBars",
+    "TheHeightsCocktails",
+    "TheHeightsRestaurants",
+    "TheHeightsCoffee"]
+    #hashtags =["Downtown Jersey Ciy food"]
     print("Starting Jersey City TikTok scraper...")
 
     for hashtag in hashtags:
@@ -185,8 +212,16 @@ def main():
 
         for url in video_urls:
             print(f"Processing video: {url}")
-
-            prompt = '''\
+            retForm = """{
+    "name": "string",
+    "location": "string",
+    "neighborhood": "string",
+    "summary": "string",
+    "tags": ["string"],
+    "quote": "string",
+    "worth": "boolean" 
+}"""
+            prompt = f'''\
  Analyze this video and its metadata to systematically extract structured recommendation information, comprising the following core components:
  1. **Name**: Capture the primary recommendation entity (e.g., restaurant, park, museum)\
 - Include establishment name
@@ -215,6 +250,12 @@ def main():
 - Select the most compelling description from speaker
 - Prioritize superlatives, emotional language, or specific calls-to-action
 - Shorten to essential statement (e.g., 'You MUST come here for the views!' → 'You MUST come here for the views')
+7. **Worth**: Is this a reccomendation? or not?
+- If it is a reccomendation, return 'True'
+- If it is not a reccomendation, return 'False'
+- If it is not clear, return 'null'-
+- Return as a boolean value not a string
+- Other consideratio, location wise is the video relevent to {hashtag} location? if not then set to false
 Processing Guidance:
 - Cross-check video timestamps for conflicting information
 - Prefer textual metadata over visual analysis
@@ -222,14 +263,7 @@ Processing Guidance:
 - Handle missing data consistently: ['', null, 'N/A']
 - Return a JSON object with the following keys: name, location, neighborhood, summary, tags, quote
 - The JSON object should be in the following format:
-{
-    "name": "string",
-    "location": "string",
-    "neighborhood": "string",
-    "summary": "string",
-    "tags": ["string"],
-    "quote": "string"
-}
+{retForm}
 return the JSON object only, no other text or comments and do not use the ```json and ``` tags at the beginning or end of the JSON object
             '''
 
@@ -240,13 +274,17 @@ return the JSON object only, no other text or comments and do not use the ```jso
                 try:
                     print(cleaned_result)
                     data = json.loads(cleaned_result)
-                    data['source_url'] = url
 
-                    # Generate embedding
-                    text_to_embed = f"{data.get('summary', '')} {data.get('neighborhood', '')} {data.get('quote', '')}"
-                    embedding = get_embedding(text_to_embed)
+                    if data['worth'] == True:
+                        data['source_url'] = url
 
-                    insert_recommendation(conn, data, hashtag, embedding)
+                        # Generate embedding
+                        text_to_embed = f"{data.get('summary', '')} {data.get('neighborhood', '')} {data.get('quote', '')}"
+                        embedding = get_embedding(text_to_embed)
+
+                        insert_recommendation(conn, data, hashtag, embedding)
+                    else:
+                        print(f"Video {url} is not a recommendation")
                 except json.JSONDecodeError:
                     print(f"Could not parse JSON from Gemini for video {url}")
             else:
