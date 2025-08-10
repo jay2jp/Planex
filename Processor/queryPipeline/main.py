@@ -10,16 +10,20 @@ import os
 import sys
 import argparse
 import psycopg2
+import logging
 from dotenv import load_dotenv
 import google.generativeai as genai
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Configure the Gemini API key
-gemini_api_key = os.getenv("GEMINI_API_KEY")
+gemini_api_key = os.getenv("GOOGLE_API_KEY")
 if not gemini_api_key:
-    sys.exit("GEMINI_API_KEY not found in environment variables.")
+    sys.exit("GOOGLE_API_KEY not found in environment variables.")
 genai.configure(api_key=gemini_api_key)
 
 def get_db_connection():
@@ -28,13 +32,13 @@ def get_db_connection():
     if pooler_url:
         try:
             conn = psycopg2.connect(pooler_url)
-            print("Successfully connected to the database via pooler URL.")
+            logging.info("Successfully connected to the database via pooler URL.")
             return conn
         except psycopg2.ProgrammingError as e:
-            print(f"Could not connect to database via pooler URL: {e}")
+            logging.error(f"Could not connect to database via pooler URL: {e}")
             return None
         except psycopg2.OperationalError as e:
-            print(f"Could not connect to database via pooler URL: {e}")
+            logging.error(f"Could not connect to database via pooler URL: {e}")
             return None
 
     # Fallback to original direct connection method
@@ -46,10 +50,10 @@ def get_db_connection():
             host=os.getenv("DB_HOST", "localhost"),
             port=os.getenv("DB_PORT", "5432")
         )
-        print("Successfully connected to the database directly.")
+        logging.info("Successfully connected to the database directly.")
         return conn
     except psycopg2.OperationalError as e:
-        print(f"Could not connect to database directly: {e}")
+        logging.error(f"Could not connect to database directly: {e}")
         return None
 
 def get_embedding(text, task_type="retrieval_query"):
@@ -63,33 +67,45 @@ def get_embedding(text, task_type="retrieval_query"):
         )
         return result['embedding']
     except Exception as e:
-        print(f"Failed to generate embedding: {e}")
+        logging.error(f"Failed to generate embedding: {e}")
         return None
 
 def expand_query(query):
     """
     Expands the user's query into a set of related queries using a generative model.
     """
+    logging.info(f"Expanding query: '{query}'")
     try:
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = f"""
         Analyze the following user query and brainstorm a set of 3-5 related, but distinct, search queries that capture different facets of the user's intent.
         The queries should be optimized for a vector similarity search in a recommendation database.
-        Return the queries as a Python list of strings.
+        Return the queries as a JSON array of strings.
 
         User Query: "{query}"
 
-        Expanded Queries:
+        Expanded Queries (JSON):
         """
+        logging.info(f"Prompt for query expansion:\n{prompt}")
         response = model.generate_content(prompt)
-        # The response will be a string that looks like a Python list.
-        # We can use ast.literal_eval to safely parse it into a list.
-        import ast
-        expanded_queries = ast.literal_eval(response.text)
+        logging.info(f"Raw response from model: {response.text}")
+        import json
+
+        text_response = response.text.strip()
+        if text_response.startswith("```json"):
+            text_response = text_response[7:]
+        if text_response.endswith("```"):
+            text_response = text_response[:-3]
+        
+        text_response = text_response.replace("'","\"")
+
+        expanded_queries = json.loads(text_response)
+        logging.info(f"Expanded queries: {expanded_queries}")
         return expanded_queries
     except Exception as e:
-        print(f"Failed to expand query: {e}")
-        return [query] # Fallback to the original query
+        logging.error(f"Failed to expand query: {e}")
+        logging.warning("Falling back to original query.")
+        return [query]
 
 def find_similar_recommendations(conn, query_embedding, top_k=3):
     """
@@ -110,7 +126,7 @@ def find_similar_recommendations(conn, query_embedding, top_k=3):
             )
             return cur.fetchall()
         except psycopg2.Error as e:
-            print(f"Database error: {e}")
+            logging.error(f"Database error: {e}")
             return None
 
 def synthesize_answer(query, candidates):
@@ -118,9 +134,8 @@ def synthesize_answer(query, candidates):
     Synthesizes a conversational answer from a list of candidate recommendations.
     """
     try:
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.5-flash')
 
-        # Format the candidates for the prompt
         candidate_details = []
         for i, candidate in enumerate(candidates):
             name, location, neighborhood, summary, quote, source_url, similarity = candidate
@@ -149,8 +164,71 @@ def synthesize_answer(query, candidates):
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        print(f"Failed to synthesize answer: {e}")
+        logging.error(f"Failed to synthesize answer: {e}")
         return "I found some recommendations, but I had trouble summarizing them."
+
+def filter_candidates(query, candidates):
+    """
+    Filters a list of candidates based on the original query's constraints using a single model call.
+    """
+    logging.info("Filtering candidates based on user query (single call)...")
+    if not candidates:
+        return []
+
+    model = genai.GenerativeModel('gemini-2.5-flash')
+
+    candidate_details = []
+    for i, candidate in enumerate(candidates):
+        name, _, _, summary, quote, _, _ = candidate
+        candidate_details.append(
+            f"Candidate {i}:\n"
+            f"  Name: {name}\n"
+            f"  Summary: {summary}\n"
+            f"  Quote: {quote}\n"
+        )
+    
+    prompt = f"""
+    Analyze the user query and the list of candidate recommendations.
+    User Query: "{query}"
+
+    Candidate Recommendations:
+    {" ".join(candidate_details)}
+
+    Identify which of the candidates directly violate any explicit negative constraints in the user query. 
+    For example, if the user says "I don't want to eat", any food-related recommendation is a violation.
+
+    Return a JSON object with a single key "valid_indices" which is a list of the integer indices of the candidates that are NOT in violation of the query.
+    Example response for 3 candidates where candidate 1 is a violation: {{"valid_indices": [0, 2]}}
+    """
+
+    try:
+        response = model.generate_content(prompt)
+        logging.info(f"Raw filter response from model: {response.text}")
+        
+        import json
+        # Find the JSON object in the response text
+        text_response = response.text
+        start_index = text_response.find('{')
+        end_index = text_response.rfind('}') + 1
+        
+        if start_index != -1 and end_index != -1:
+            json_str = text_response[start_index:end_index]
+            result = json.loads(json_str)
+            valid_indices = result.get("valid_indices", [])
+            
+            filtered_candidates = [candidates[i] for i in valid_indices if i < len(candidates)]
+            
+            logging.info(f"Filtered from {len(candidates)} down to {len(filtered_candidates)} candidates.")
+            return filtered_candidates
+        else:
+            logging.warning("No JSON object found in the filter response.")
+            return candidates
+
+
+    except Exception as e:
+        logging.error(f"Failed to filter candidates in a single call: {e}")
+        logging.warning("Falling back to original (unfiltered) list of candidates.")
+        return candidates
 
 def main():
     """
@@ -160,16 +238,16 @@ def main():
     parser.add_argument("query", type=str, help="The user's natural language query.")
     args = parser.parse_args()
 
-    print(f"Received query: {args.query}")
+    logging.info(f"Received query: {args.query}")
 
     conn = get_db_connection()
     if not conn:
         sys.exit("Could not connect to the database. Exiting.")
 
     expanded_queries = expand_query(args.query)
-    print("Expanded queries:")
+    logging.info("Expanded queries:")
     for q in expanded_queries:
-        print(f"- {q}")
+        logging.info(f"- {q}")
 
     all_candidates = []
     for query in expanded_queries:
@@ -178,31 +256,34 @@ def main():
             candidates = find_similar_recommendations(conn, embedding, top_k=3)
             if candidates:
                 all_candidates.extend(candidates)
+    logging.info(f"Found {len(all_candidates)} total candidates from all queries.")
 
-    # Remove duplicates
     unique_candidates = []
     seen_urls = set()
     for candidate in all_candidates:
-        if candidate[5] not in seen_urls: # Use source_url to identify duplicates
+        if candidate[5] not in seen_urls:
             unique_candidates.append(candidate)
             seen_urls.add(candidate[5])
+    logging.info(f"Found {len(unique_candidates)} unique candidates.")
 
-    print("\n--- Unique Candidates ---")
-    for candidate in unique_candidates:
-        print(f"Name: {candidate[0]}, Similarity: {candidate[6]:.4f}")
-    print("-------------------------")
+    # Filter candidates based on the original query
+    filtered_candidates = filter_candidates(args.query, unique_candidates)
 
-    synthesized_answer = synthesize_answer(args.query, unique_candidates)
+    logging.info("\n--- Filtered Candidates ---")
+    for candidate in filtered_candidates:
+        logging.info(f"Name: {candidate[0]}, Similarity: {candidate[6]:.4f}")
+    logging.info("-------------------------")
 
-    print("\n--- Synthesized Answer ---")
-    print(synthesized_answer)
-    print("--------------------------")
+    synthesized_answer = synthesize_answer(args.query, filtered_candidates)
 
-    print("\n--- Sources ---")
-    for candidate in unique_candidates:
-        print(f"- {candidate[0]}: {candidate[5]}")
-    print("---------------")
+    logging.info("\n--- Synthesized Answer ---")
+    logging.info(synthesized_answer)
+    logging.info("--------------------------")
 
+    logging.info("\n--- Sources ---")
+    for candidate in filtered_candidates:
+        logging.info(f"- {candidate[0]}: {candidate[5]}")
+    logging.info("---------------")
 
     conn.close()
 
