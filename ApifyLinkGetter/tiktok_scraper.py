@@ -3,14 +3,14 @@
 TikTok Video Scraper Service
 
 This module provides a service to retrieve the top 15 TikTok videos posted within 
-the last two weeks for a given hashtag, using the Apify TikTok Scraper.
+the last two weeks for a given search query, using the Apify TikTok Scraper.
 """
 
 import os
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Union
 from apify_client import ApifyClient
 from dotenv import load_dotenv
 
@@ -18,13 +18,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def get_top_tiktok_videos(hashtag: str, days_back: int = 14) -> List[str]:
+def get_top_tiktok_videos(search_queries: Union[str, List[str]], days_back: int = 14) -> List[str]:
     """
-    Retrieves the top 15 TikTok videos posted in the last specified days for the given hashtag
+    Retrieves the top 15 TikTok videos posted in the last specified days for the given search query or queries
     using the Apify TikTok Scraper.
 
     Args:
-        hashtag (str): The hashtag name without the '#' symbol (e.g., 'dance').
+        search_queries (Union[str, List[str]]): The search query or a list of search queries.
         days_back (int): Number of days to look back (default: 14 for two weeks).
 
     Returns:
@@ -41,16 +41,19 @@ def get_top_tiktok_videos(hashtag: str, days_back: int = 14) -> List[str]:
             return []
         
         client = ApifyClient(api_token)
+
+        if isinstance(search_queries, str):
+            search_queries = [search_queries]
         
         # Configure scraper input
         scraper_input = {
-            "hashtags": [hashtag],
-            "resultsLimit": 30,
-             "resultsPerPage": 30
+            "searchQueries": search_queries,
+            "resultsLimit": 20,
+             "resultsPerPage": 20
         }
         
         # Run the clockworks/tiktok-scraper actor
-        print(f"Running TikTok scraper for hashtag: {hashtag}")
+        print(f"Running TikTok scraper for search queries: {search_queries}")
         run = client.actor("clockworks/tiktok-scraper").call(run_input=scraper_input)
         
         # Debug: Print run information
@@ -72,13 +75,13 @@ def get_top_tiktok_videos(hashtag: str, days_back: int = 14) -> List[str]:
         # INSERT_YOUR_CODE
         # Write dataset items to a .json file for debugging/inspection
         import json
-        output_filename = f"tiktok_{hashtag}_dataset.json"
-        try:
-            with open(output_filename, "w", encoding="utf-8") as f:
-                json.dump(dataset_dict, f, ensure_ascii=False, indent=2)
-            print(f"Dataset written to {output_filename}")
-        except Exception as e:
-            print(f"Failed to write dataset to file: {e}")
+        #output_filename = f"tiktok_{search_queries[0]}_dataset.json"
+        #try:
+        #    with open(output_filename, "w", encoding="utf-8") as f:
+        #        json.dump(dataset_dict, f, ensure_ascii=False, indent=2)
+        #    print(f"Dataset written to {output_filename}")
+        #except Exception as e:
+        #    print(f"Failed to write dataset to file: {e}")
         
         for attempt in range(max_retries):
             try:
@@ -135,7 +138,7 @@ def get_top_tiktok_videos(hashtag: str, days_back: int = 14) -> List[str]:
 
 
         if not dataset_items:
-            print(f"No videos found for hashtag: {hashtag}")
+            print(f"No videos found for search queries: {search_queries}")
             return []
         
         # Calculate the cutoff date
@@ -168,7 +171,7 @@ def get_top_tiktok_videos(hashtag: str, days_back: int = 14) -> List[str]:
                 continue
         
         if not recent_videos:
-            print(f"No videos found within the last {days_back} days for hashtag: {hashtag}")
+            print(f"No videos found within the last {days_back} days for search queries: {search_queries}")
             return []
         
         # Sort by stats.hearts (likes) in descending order
@@ -188,31 +191,33 @@ def get_top_tiktok_videos(hashtag: str, days_back: int = 14) -> List[str]:
             if url:
                 video_urls.append(url)
         
-        print(f"Found {len(video_urls)} videos for hashtag: {hashtag}")
+        print(f"Found {len(video_urls)} videos for search queries: {search_queries}")
         return video_urls
         
     except Exception as e:
         logging.error(f"Error in get_top_tiktok_videos: {e}")
         return []
 
-
+"""
 if __name__ == "__main__":
-    # Test the function with a sample hashtag
-    test_hashtag = "dance"
+    # Test the function with a sample search query
+    test_query = "dance"
     test_days = 7  # Change this to 7 for last week, 14 for last two weeks
     
     # Configure logging
     logging.basicConfig(level=logging.INFO)
     
-    print(f"Testing TikTok scraper with hashtag: {test_hashtag}")
+    print(f"Testing TikTok scraper with search query: {test_query}")
     print(f"Looking for videos from the last {test_days} days")
-    results = get_top_tiktok_videos(test_hashtag, days_back=test_days)
+    results = get_top_tiktok_videos(test_query, days_back=test_days)
     
     if results:
-        print(f"\nFound {len(results)} videos:")
+        print(f"Found {len(results)} videos:")
         for i, url in enumerate(results, 1):
             print(f"{i}. {url}")
     else:
         print("No videos found or an error occurred.") 
 
     print("RESULT: ", results)
+
+"""

@@ -58,5 +58,19 @@ def analyze():
 
 if __name__ == "__main__":
     # The app runs on the port defined by the environment or defaults to 5000
+    '''
+    scraped_data = download_video("https://www.tiktok.com/@reserve.nyc/video/7528541796184460575")
+    print(scraped_data)
+    prompt = """
+
+    """
+    result_text = analyze_video(
+            video_path=scraped_data['video_path'],
+            prompt=prompt,
+            metadata_text=scraped_data['metadata_text']
+        )
+    print(result_text)
+    '''
+
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True) 
