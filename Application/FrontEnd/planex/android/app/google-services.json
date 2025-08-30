@@ -1,0 +1,9 @@
+{
+    "installed": {
+        "client_id": "696250669836-ic7i4cv346fbinhs9q5ss6nmf2vl7she.apps.googleusercontent.com",
+        "project_id": "planning-app-470613",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
+    }
+}
