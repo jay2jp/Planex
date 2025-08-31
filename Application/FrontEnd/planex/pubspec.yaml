@@ -41,6 +41,7 @@ dependencies:
   google_sign_in_platform_interface: ^3.0.0
   google_sign_in_web: ^1.0.0
   dart_openai: ^5.1.0
+  flutter_markdown: ^0.7.1
 
 
 dev_dependencies:

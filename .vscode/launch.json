@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    
+        {
+            "name": "planex",
+            "cwd": "Application\\FrontEnd\\planex",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "planex (profile mode)",
+            "cwd": "Application\\FrontEnd\\planex",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "planex (release mode)",
+            "cwd": "Application\\FrontEnd\\planex",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}
