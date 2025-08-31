@@ -24,7 +24,7 @@ class _Onboarding2PageState extends State<Onboarding2Page> {
   Future<Map<String, String>> _generateSummary(List<Map<String, String>> messages) async {
     try {
       final response = await OpenAI.instance.chat.create(
-        model: 'gpt-3.5-turbo',
+        model: 'openai/gpt-oss-20b',
         responseFormat: {'type': 'json_object'},
         messages: [
           OpenAIChatCompletionChoiceMessageModel(

@@ -41,7 +41,7 @@ class _Onboarding1PageState extends State<Onboarding1Page> {
 
     try {
       final chatCompletion = await OpenAI.instance.chat.create(
-        model: 'gpt-3.5-turbo',
+        model: 'openai/gpt-oss-20b',
         messages: [
           OpenAIChatCompletionChoiceMessageModel(
             content: [

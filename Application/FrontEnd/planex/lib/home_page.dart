@@ -53,7 +53,7 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final chatCompletion = await OpenAI.instance.chat.create(
-        model: 'gpt-3.5-turbo',
+        model: 'openai/gpt-oss-20b',
         messages: [
           OpenAIChatCompletionChoiceMessageModel(
             content: [
