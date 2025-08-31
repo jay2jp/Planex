@@ -25,7 +25,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
           password: _passwordController.text,
         );
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/home');
+          Navigator.of(context).pushReplacementNamed('/onboarding1');
         }
       } on AuthException catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(

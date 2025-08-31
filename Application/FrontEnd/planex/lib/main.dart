@@ -5,10 +5,15 @@ import 'package:planex/splash_page.dart';
 import 'package:planex/login_page.dart';
 import 'package:planex/email_login_page.dart';
 import 'package:planex/home_page.dart';
+import 'package:dart_openai/dart_openai.dart';
+import 'package:planex/onboarding1_page.dart';
+import 'package:planex/onboarding2_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+  OpenAI.apiKey = dotenv.env['OPENAI_API_KEY']!;
+  OpenAI.baseUrl = "https://api.groq.com/openai";
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
@@ -37,6 +42,8 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/email-login': (context) => const EmailLoginPage(),
         '/home': (context) => const HomePage(),
+        '/onboarding1': (context) => const Onboarding1Page(),
+        '/onboarding2': (context) => const Onboarding2Page(),
       },
     );
   }
