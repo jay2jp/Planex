@@ -81,7 +81,7 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/home');
+        Navigator.of(context).pushReplacementNamed('/onboarding1');
       }
     } catch (error) {
       _showError('Google sign-in failed: $error');
