@@ -13,13 +13,30 @@ class _Onboarding1PageState extends State<Onboarding1Page> {
   final TextEditingController _controller = TextEditingController();
   final List<Map<String, String>> _messages = [];
   bool _isLoading = false;
+  bool _showFinishedButton = false;
+
+  final String _systemMessage = """
+You are a fun, witty AI guide for NYC Vibes, an app that pulls fresh recommendations from Instagram Reels and TikTok based on real-time trends and your location in NYC. Your goal is to skip boring forms and build a quick user profile through a chill, playful chat. Keep it light, emoji-filled, and super casual—like texting a cool friend. Ask one question at a time, wait for their reply, then build on it naturally. Aim for short, few-word answers from them (e.g., "Pick one: low, mid, or high?"). Cover these exact topics in this order, but weave them in conversationally without listing them out:
+
+1. Age
+2. General interests (foodie, nightlife, outdoors, shopping, art, or user's own words)
+3. Budget range (low, mid, high)
+4. Gender
+5. Cultural interests (museums, history, architecture, religious sites)
+6. Political alignment (progressive, traditional, balanced mix, or none)
+7. Drinking habits (party, casual, heavy, sober curious, no thanks)
+8. Introvert/extrovert
+9. Dietary restrictions
+
+Once you have all info, summarize their profile playfully (e.g., "Gotcha: 25-year-old foodie, mid-budget gal into progressive vibes, extrovert with a casual drink style—no gluten!"), confirm if it's spot on, then call the `showFinishedButton` tool. From there, use their profile + location to query Reels/TikTok for personalized, fresh recs via RAG and time series.
+
+Stay in character: Energetic, non-pushy, fun. If they skip or say "idk," suggest defaults or move on with "No worries, we can tweak later!" Never ask more than needed; keep chat to 9-10 turns max. End onboarding seamlessly into the main query flow.
+""";
 
   @override
   void initState() {
     super.initState();
-    _addMessage('Hi! I\'m Claire, your AI assistant. I\'m here to learn about your preferences to help you best.', 'Claire');
-    _addMessage('Let\'s start with a quick qualifying question:', 'Claire');
-    _addMessage('What kind of destinations are you generally interested in (e.g., Adventure, Relaxation, Culture, Food, etc).', 'Claire');
+    _addMessage("Hey! To tailor NYC spots just for you, what's your age? (Just a number or range, like 20s) 😎", 'Claire');
   }
 
   void _addMessage(String content, String sender) {
@@ -40,22 +57,50 @@ class _Onboarding1PageState extends State<Onboarding1Page> {
     });
 
     try {
+      final chatHistory = _messages.map((m) {
+        return OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(m['content']!),
+          ],
+          role: m['sender'] == 'user' ? OpenAIChatMessageRole.user : OpenAIChatMessageRole.assistant,
+        );
+      }).toList();
+
       final chatCompletion = await OpenAI.instance.chat.create(
         model: 'openai/gpt-oss-20b',
         messages: [
           OpenAIChatCompletionChoiceMessageModel(
             content: [
-              OpenAIChatCompletionChoiceMessageContentItemModel.text(
-                'You are Claire, an AI assistant for a travel planning app called Planex. Your goal is to understand the user\'s travel preferences. Keep your responses concise and engaging. Ask clarifying questions to get a better understanding of what the user is looking for. The user said: "$message"',
-              ),
+              OpenAIChatCompletionChoiceMessageContentItemModel.text(_systemMessage),
             ],
-            role: OpenAIChatMessageRole.user,
+            role: OpenAIChatMessageRole.system,
           ),
+          ...chatHistory,
+        ],
+        tools: [
+          OpenAIToolModel(
+            type: 'function',
+            function: OpenAIFunctionModel.withParameters(
+              name: 'showFinishedButton',
+              description: 'Call this tool when you feel you have gotten enough information about the user to build a complete profile.',
+              parameters: [],
+            ),
+          )
         ],
       );
 
-      final response = chatCompletion.choices.first.message.content?.first.text ?? 'Sorry, I could not process that.';
-      _addMessage(response, 'Claire');
+      final response = chatCompletion.choices.first.message;
+      if (response.toolCalls != null && response.toolCalls!.isNotEmpty) {
+        for (final toolCall in response.toolCalls!) {
+          if (toolCall.function.name == 'showFinishedButton') {
+            setState(() {
+              _showFinishedButton = true;
+            });
+          }
+        }
+      } else {
+        _addMessage(response.content?.first.text ?? 'Sorry, I could not process that.', 'Claire');
+      }
     } catch (e) {
       _addMessage('Error: ${e.toString()}', 'Claire');
     } finally {
@@ -69,7 +114,7 @@ class _Onboarding1PageState extends State<Onboarding1Page> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('The Onboarding Process'),
+        title: const Text('NYC Vibes Onboarding'),
         backgroundColor: const Color(0xFF2C3E50),
       ),
       backgroundColor: const Color(0xFF2C3E50),
@@ -134,18 +179,19 @@ class _Onboarding1PageState extends State<Onboarding1Page> {
               ],
             ),
           ),
-           Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pushReplacementNamed(
-                  '/onboarding2',
-                  arguments: _messages,
-                );
-              },
-              child: const Text('Finished'),
-            ),
-          )
+          if (_showFinishedButton || _messages.length > 20)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pushReplacementNamed(
+                    '/onboarding2',
+                    arguments: _messages,
+                  );
+                },
+                child: const Text('Finished'),
+              ),
+            )
         ],
       ),
     );
